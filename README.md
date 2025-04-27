@@ -1,3 +1,3 @@
 # ICS321Project
 
-This is the project for our Introduction to Databases course (ICS321)
+This is the project for our Database Systems course (ICS321)
