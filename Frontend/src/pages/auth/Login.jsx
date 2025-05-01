@@ -10,8 +10,24 @@ const Login = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (userID === 'admin' && password === 'admin') {
-      navigate('/');
+
+    const stored = localStorage.getItem(kfupmID);
+    if (!stored) {
+      alert('KFUPM ID not found');
+      return;
+    }
+
+    const user = JSON.parse(stored);
+
+    if (user.password === password && user.userID === userID) {
+      localStorage.setItem('kfupmID', kfupmID);
+      localStorage.setItem('role', user.role); // Save role for future use
+
+      if (user.role === 'admin') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/guest-dashboard');
+      }
     } else {
       alert('Invalid credentials');
     }
@@ -40,6 +56,7 @@ const Login = () => {
           className="w-full px-4 py-2 mb-4 border rounded focus:outline-none focus:ring"
           required
         />
+
         <input
           type="text"
           placeholder="KFUPM ID"

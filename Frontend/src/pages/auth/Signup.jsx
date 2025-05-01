@@ -12,10 +12,21 @@ const Signup = () => {
 
   const handleSignup = (e) => {
     e.preventDefault();
-    console.log({ name, userID, kfupmID, password, role });
+  
+    const user = {
+      name,
+      userID,
+      password,
+      role, // 'admin' or 'guest' from radio buttons
+    };
+  
+    // Save using KFUPM ID as key
+    localStorage.setItem(kfupmID, JSON.stringify(user));
+  
     alert(`Signed up as ${role}`);
     navigate('/login');
   };
+  
 
   return (
     <div

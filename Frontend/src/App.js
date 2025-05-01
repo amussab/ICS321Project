@@ -5,6 +5,8 @@ import Login from './pages/auth/Login';
 import Home from './pages/Home';
 import NotFound from './pages/NotFound';
 import Signup from './pages/auth/Signup';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import GuestDashboard from './pages/guest/GuestDashboard';
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<NotFound />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/guest-dashboard" element={<GuestDashboard />} /> 
       </Routes>
     </Router>
   );
