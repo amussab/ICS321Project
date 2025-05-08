@@ -1,38 +1,21 @@
-const app = require('./app'); // Import the Express app
-require('dotenv').config(); // Load environment variables
+const express = require('express');
+const app = express();
+const cors = require('cors');
+require('dotenv').config();
 
-// Validate required environment variables
-if (!process.env.PORT) {
-  console.error('Error: PORT is not defined in the environment variables');
-  process.exit(1); // Exit with failure code
-}
+const tournamentRoutes = require('./routes/tournaments');
+const teamRoutes = require('./routes/teams');
+const playerRoutes = require('./routes/players');
+const matchRoutes = require('./routes/matches');
 
-const port = process.env.PORT || 3000; // Use port from .env or default to 3000
+app.use(cors());
+app.use(express.json());
 
-// Start the server
-const server = app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+// Mount route files
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/players', playerRoutes);
+app.use('/api/matches', matchRoutes);
 
-// Graceful shutdown handling
-const shutdown = (signal) => {
-  console.log(`\nReceived ${signal}. Closing server gracefully...`);
-  server.close(() => {
-    console.log('Server closed. Exiting process...');
-    process.exit(0); // Exit with success code
-  });
-};
-
-// Listen for termination signals
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-
-// Catch unhandled exceptions and rejections
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1); // Exit with failure code
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
