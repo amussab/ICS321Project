@@ -41,8 +41,47 @@ export default function AdminDashboard() {
   };
 
   const saveMatchResults = () => {
-    localStorage.setItem('match_results', JSON.stringify(matchResults));
-    alert('✅ Match results saved to database!');
+    const currentMatchResults = matchResults.filter(m => m.tr_id === selectedTournament);
+    localStorage.setItem('match_results', JSON.stringify([
+      ...matchResults.filter(m => m.tr_id !== selectedTournament),
+      ...currentMatchResults
+    ]));
+
+    const allMatches = JSON.parse(localStorage.getItem('match_results')) || [];
+    const tournaments = JSON.parse(localStorage.getItem('tournaments')) || [];
+
+    const goalCount = {};
+    const redCards = [];
+
+    allMatches.forEach((match) => {
+      match.scorers1?.forEach((p) => {
+        goalCount[p] = (goalCount[p] || 0) + 1;
+      });
+      match.scorers2?.forEach((p) => {
+        goalCount[p] = (goalCount[p] || 0) + 1;
+      });
+
+      (match.cards1 || []).forEach((player) => {
+        redCards.push({
+          player,
+          tournament: tournaments.find(t => t.tr_id === match.tr_id)?.tr_name || '',
+          match: `${match.team1} vs ${match.team2}`
+        });
+      });
+
+      (match.cards2 || []).forEach((player) => {
+        redCards.push({
+          player,
+          tournament: tournaments.find(t => t.tr_id === match.tr_id)?.tr_name || '',
+          match: `${match.team1} vs ${match.team2}`
+        });
+      });
+    });
+
+    localStorage.setItem('goal_count', JSON.stringify(goalCount));
+    localStorage.setItem('red_cards', JSON.stringify(redCards));
+
+    alert('✅ Match results, scorers & red cards saved to database!');
   };
 
   const generateFixtures = () => {

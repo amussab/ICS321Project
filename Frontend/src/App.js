@@ -11,10 +11,14 @@ import AddTournament from './pages/admin/AddTournament';
 import DeleteTournament from './pages/admin/DeleteTournament';
 import AddTeam from './pages/admin/AddTeam';
 import SelectCaptain from './pages/admin/SelectCaptain';
+import TopScorer from './pages/guest/TopScorer';
+import RedCardedPlayers from './pages/guest/RedCardedPlayers';
+import TeamMembers from './pages/guest/TeamMembers';
+
 
 
 function App() {
-  localStorage.clear();
+  //localStorage.clear();
   return (
     <Router>
       <Routes>
@@ -28,6 +32,9 @@ function App() {
         <Route path="/admin/delete-tournament" element={<DeleteTournament />} />
         <Route path="/admin/add-team" element={<AddTeam />} />
         <Route path="/admin/select-captain" element={<SelectCaptain />} />
+        <Route path="/guest/top-scorer" element={<TopScorer />} />
+        <Route path="/guest/red-cards" element={<RedCardedPlayers />} />
+        <Route path="/guest/team-members" element={<TeamMembers />} />
       </Routes>
     </Router>
   );

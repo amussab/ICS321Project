@@ -101,10 +101,28 @@ export default function GuestDashboard() {
           <button onClick={closeMenu} className="text-sm text-blue-600 hover:underline">✕</button>
         </div>
         <ul className="p-4 space-y-4 text-gray-700">
+          <li
+            className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}
+            onClick={() => navigate('/guest/top-scorer')}
+          >
+            Top Scorer
+          </li>
+
           <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Browse Match Results</li>
-          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Top Scorer</li>
-          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Red Carded Players</li>
-          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Team Members</li>
+          <li
+            className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline text-gray-400'}`}
+            onClick={() => navigate('/guest/red-cards')}
+          >
+            Red Carded Players
+          </li>
+
+          <li
+            className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}
+            onClick={() => navigate('/guest/team-members')}
+          >
+            Team Members
+          </li>
+
           <hr className="my-4" />
           <li
             onClick={handleLogout}
