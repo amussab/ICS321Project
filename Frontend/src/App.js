@@ -14,7 +14,7 @@ import SelectCaptain from './pages/admin/SelectCaptain';
 
 
 function App() {
-  localStorage.clear();
+  //localStorage.clear();
   return (
     <Router>
       <Routes>
