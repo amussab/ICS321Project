@@ -1,11 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 
 export default function GuestDashboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState('');
   const [guestName, setGuestName] = useState('');
+  const navigate = useNavigate();
+  const [tournaments, setTournaments] = useState([]);
 
-  const tournaments = ['Qadsia Cup 2024', 'Riyadh Open', 'KFUPM League'];
+  useEffect(() => {
+    const kfupmID = localStorage.getItem('kfupmID');
+    const storedUser = localStorage.getItem(kfupmID);
+
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setGuestName(user.name);
+    }
+
+    // ✅ Load tournaments from localStorage
+    const savedTournaments = JSON.parse(localStorage.getItem('tournaments')) || [];
+    setTournaments(savedTournaments);
+  }, []);
+
 
   useEffect(() => {
     const kfupmID = localStorage.getItem('kfupmID');
@@ -19,7 +36,9 @@ export default function GuestDashboard() {
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
-
+  const handleLogout = () => {
+    navigate('/');
+  };
   return (
     <div className="min-h-screen bg-gray-100 relative overflow-hidden">
       {/* Header */}
@@ -68,9 +87,8 @@ export default function GuestDashboard() {
 
       {/* Slide-in Menu */}
       <aside
-        className={`fixed top-0 right-0 z-30 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ${
-          menuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed top-0 right-0 z-30 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ${menuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
       >
         <div className="p-4 border-b font-semibold text-gray-700 flex justify-between items-center">
           Guest Menu
@@ -89,6 +107,14 @@ export default function GuestDashboard() {
           <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>
             Team Members
           </li>
+          <hr className="my-4" />
+          <li
+            onClick={handleLogout}
+            className="cursor-pointer text-red-600 hover:underline"
+          >
+            Logout
+          </li>
+
         </ul>
       </aside>
     </div>

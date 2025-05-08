@@ -52,7 +52,7 @@ const Signup = () => {
 
         <input
           type="text"
-          placeholder="User ID"
+          placeholder="Email"
           value={userID}
           onChange={(e) => setUserID(e.target.value)}
           className="w-full px-4 py-2 mb-4 border rounded"
