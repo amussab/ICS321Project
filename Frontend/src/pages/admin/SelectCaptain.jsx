@@ -10,33 +10,54 @@ export default function SelectCaptain() {
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
+  // Fetch tournaments from backend
   useEffect(() => {
-    const t = JSON.parse(localStorage.getItem('tournaments')) || [];
-    setTournaments(t);
-    const teamData = JSON.parse(localStorage.getItem('tournament_teams')) || [];
-    setTeams(teamData);
+    fetch('http://localhost:5000/api/tournaments')
+      .then(res => res.json())
+      .then(data => setTournaments(data))
+      .catch(err => console.error('Error fetching tournaments:', err));
   }, []);
 
-  const handleSetCaptain = () => {
-    const updatedTeams = teams.map(team => {
-      if (team.tr_id === selectedTournament && team.team_id === selectedTeam) {
-        return {
-          ...team,
-          players: team.players.map(p =>
-            p === selectedCaptain ? `${p} (C)` : p.replace(' (C)', '')
-          )
-        };
-      }
-      return team;
-    });
+  // Fetch teams (and their players) for selected tournament
+  useEffect(() => {
+    if (!selectedTournament) return;
+    fetch(`http://localhost:5000/api/teams/${selectedTournament}`)
+      .then(res => res.json())
+      .then(data => setTeams(data))
+      .catch(err => console.error('Error fetching teams:', err));
+  }, [selectedTournament]);
 
-    localStorage.setItem('tournament_teams', JSON.stringify(updatedTeams));
-    setMessage(`✅ ${selectedCaptain} is now the captain!`);
-    setSelectedCaptain('');
+  const handleSetCaptain = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/teams/set-captain', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tr_id: selectedTournament,
+          team_id: selectedTeam,
+          player_name: selectedCaptain,
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        setMessage(`✅ ${selectedCaptain} is now the captain!`);
+
+        // Refresh teams to see updated captain
+        const updatedTeams = await fetch(`http://localhost:5000/api/teams/${selectedTournament}`);
+        const updatedData = await updatedTeams.json();
+        setTeams(updatedData);
+      } else {
+        setMessage(`❌ Failed: ${result.error}`);
+      }
+    } catch (err) {
+      setMessage('❌ Failed to set captain.');
+      console.error('Error:', err);
+    }
   };
 
-  const availableTeams = teams.filter(team => team.tr_id === selectedTournament);
-  const selectedTeamData = teams.find(team => team.team_id === selectedTeam);
+  const availableTeams = teams.filter(team => team.tr_id.toString() === selectedTournament);
+  const selectedTeamData = teams.find(team => team.team_id.toString() === selectedTeam);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -78,7 +99,7 @@ export default function SelectCaptain() {
           </>
         )}
 
-        {selectedTeam && (
+        {selectedTeam && selectedTeamData && (
           <>
             <label className="block font-medium mb-1">Select Captain</label>
             <select
@@ -87,9 +108,9 @@ export default function SelectCaptain() {
               className="w-full border px-4 py-2 rounded mb-4"
             >
               <option value="">-- Select Captain --</option>
-              {selectedTeamData?.players.map((player, i) => (
+              {selectedTeamData.players.map((player, i) => (
                 <option key={i} value={player.replace(' (C)', '')}>
-                  {player.replace(' (C)', '')}
+                  {player}
                 </option>
               ))}
             </select>

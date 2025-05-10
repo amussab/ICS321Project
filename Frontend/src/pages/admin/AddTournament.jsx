@@ -19,33 +19,30 @@ export default function AddTournament() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const existing = JSON.parse(localStorage.getItem('tournaments')) || [];
+    try {
+      const response = await fetch('http://localhost:5000/api/tournaments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-    // Check for duplicate name (optional)
-    const nameExists = existing.some(t => t.tr_name === formData.tr_name);
-    if (nameExists) {
-      setError('⚠️ A tournament with this name already exists.');
-      return;
+      if (response.ok) {
+        alert(`✅ Tournament "${formData.tr_name}" added to the database.`);
+        navigate('/admin-dashboard');
+      } else if (response.status === 409) {
+        setError('⚠️ A tournament with this name already exists.');
+      } else {
+        setError('❌ Failed to save tournament.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('❌ Server error occurred.');
     }
-
-    // ✅ Generate next ID on submit to avoid duplicates
-    const nextID = existing.reduce((max, t) => Math.max(max, Number(t.tr_id)), 0) + 1;
-
-    const newTournament = {
-      tr_id: nextID.toString(),
-      ...formData
-    };
-
-    const updated = [...existing, newTournament];
-    localStorage.setItem('tournaments', JSON.stringify(updated));
-
-    alert(`✅ Tournament "${formData.tr_name}" added with ID ${nextID}`);
-
-    // ✅ Redirect after saving
-    navigate('/admin-dashboard');
   };
 
   return (

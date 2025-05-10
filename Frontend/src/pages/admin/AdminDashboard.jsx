@@ -7,102 +7,127 @@ export default function AdminDashboard() {
   const [adminName, setAdminName] = useState('');
   const [selectedTournament, setSelectedTournament] = useState('');
   const [tournamentTeams, setTournamentTeams] = useState([]);
-  const [matchResults, setMatchResults] = useState([]);
+  const [fixtures, setFixtures] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const kfupmID = localStorage.getItem('kfupmID');
     const storedUser = localStorage.getItem(kfupmID);
-    const teams = JSON.parse(localStorage.getItem('tournament_teams')) || [];
-    const matches = JSON.parse(localStorage.getItem('match_results')) || [];
-
-    setTournamentTeams(teams);
-    setMatchResults(matches);
 
     if (storedUser) {
       const user = JSON.parse(storedUser);
       setAdminName(user.name);
     }
 
-    const savedTournaments = JSON.parse(localStorage.getItem('tournaments')) || [];
-    setTournaments(savedTournaments);
+    fetch('http://localhost:5000/api/tournaments')
+      .then(res => res.json())
+      .then(data => setTournaments(data))
+      .catch(err => console.error('Error fetching tournaments:', err));
   }, []);
+
+  useEffect(() => {
+    if (!selectedTournament) return;
+
+    fetch(`http://localhost:5000/api/teams/${selectedTournament}`)
+      .then(res => res.json())
+      .then(data => {
+        setTournamentTeams(data);
+        generateFixtures(data);
+      })
+      .catch(err => console.error('Error fetching teams:', err));
+  }, [selectedTournament]);
+
+  const generateFixtures = (teams) => {
+    const newFixtures = [];
+    for (let i = 0; i < teams.length; i++) {
+      for (let j = i + 1; j < teams.length; j++) {
+        newFixtures.push({
+          team1: teams[i],
+          team2: teams[j],
+          score1: '',
+          score2: '',
+          scorers1: [],
+          scorers2: [],
+          redCards1: [],
+          redCards2: []
+        });
+      }
+    }
+    setFixtures(newFixtures);
+  };
+
+  const saveMatch = async (match) => {
+    const payload = {
+      tournament_id: selectedTournament,
+      team1_id: match.team1.team_id,
+      team2_id: match.team2.team_id,
+      score1: parseInt(match.score1, 10),
+      score2: parseInt(match.score2, 10),
+      scorers1: match.scorers1.filter(Boolean),
+      scorers2: match.scorers2.filter(Boolean),
+      red_cards1: match.redCards1.filter(Boolean),
+      red_cards2: match.redCards2.filter(Boolean),
+    };
+
+    try {
+      const response = await fetch('http://localhost:5000/api/matches/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert('Match saved successfully!');
+      } else {
+        alert('Failed to save match.');
+      }
+    } catch (error) {
+      console.error('Error saving match:', error);
+      alert('An error occurred while saving the match.');
+    }
+  };
+
+  const handleScoreChange = (index, teamKey, value) => {
+    const updated = [...fixtures];
+    updated[index][teamKey] = value;
+    const scoreKey = teamKey === 'score1' ? 'scorers1' : 'scorers2';
+    updated[index][scoreKey] = Array.from({ length: Number(value) || 0 }, () => '');
+    setFixtures(updated);
+  };
+
+  const handleScorerChange = (index, teamKey, i, value) => {
+    const updated = [...fixtures];
+    updated[index][teamKey][i] = value;
+    setFixtures(updated);
+  };
+
+  const addScorerField = (index, teamKey) => {
+    const updated = [...fixtures];
+    updated[index][teamKey].push('');
+    setFixtures(updated);
+  };
+
+  const handleRedCardChange = (index, teamKey, i, value) => {
+    const updated = [...fixtures];
+    updated[index][teamKey][i] = value;
+    setFixtures(updated);
+  };
+
+  const addRedCardField = (index, teamKey) => {
+    const updated = [...fixtures];
+    updated[index][teamKey].push('');
+    setFixtures(updated);
+  };
+
+  const getPlayerOptions = (team) => {
+    return team.players?.map((name, idx) => (
+      <option key={idx} value={name}>{name}</option>
+    )) || [];
+  };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
   const handleLogout = () => navigate('/');
-
-  const teamsInTournament = tournamentTeams.filter(team => team.tr_id === selectedTournament);
-
-  const handleMatchUpdate = (index, field, value) => {
-    const updated = [...matchResults];
-    updated[index][field] = value;
-    setMatchResults(updated);
-  };
-
-  const saveMatchResults = () => {
-    const currentMatchResults = matchResults.filter(m => m.tr_id === selectedTournament);
-    localStorage.setItem('match_results', JSON.stringify([
-      ...matchResults.filter(m => m.tr_id !== selectedTournament),
-      ...currentMatchResults
-    ]));
-
-    const allMatches = JSON.parse(localStorage.getItem('match_results')) || [];
-    const tournaments = JSON.parse(localStorage.getItem('tournaments')) || [];
-
-    const goalCount = {};
-    const redCards = [];
-
-    allMatches.forEach((match) => {
-      match.scorers1?.forEach((p) => {
-        goalCount[p] = (goalCount[p] || 0) + 1;
-      });
-      match.scorers2?.forEach((p) => {
-        goalCount[p] = (goalCount[p] || 0) + 1;
-      });
-
-      (match.cards1 || []).forEach((player) => {
-        redCards.push({
-          player,
-          tournament: tournaments.find(t => t.tr_id === match.tr_id)?.tr_name || '',
-          match: `${match.team1} vs ${match.team2}`
-        });
-      });
-
-      (match.cards2 || []).forEach((player) => {
-        redCards.push({
-          player,
-          tournament: tournaments.find(t => t.tr_id === match.tr_id)?.tr_name || '',
-          match: `${match.team1} vs ${match.team2}`
-        });
-      });
-    });
-
-    localStorage.setItem('goal_count', JSON.stringify(goalCount));
-    localStorage.setItem('red_cards', JSON.stringify(redCards));
-
-    alert('✅ Match results, scorers & red cards saved to database!');
-  };
-
-  const generateFixtures = () => {
-    const fixtures = [];
-    for (let i = 0; i < teamsInTournament.length; i++) {
-      for (let j = i + 1; j < teamsInTournament.length; j++) {
-        fixtures.push({
-          tr_id: selectedTournament,
-          team1: teamsInTournament[i].team_name,
-          team2: teamsInTournament[j].team_name,
-          score1: 0,
-          score2: 0,
-          scorers1: [],
-          scorers2: [],
-          cards1: [],
-          cards2: []
-        });
-      }
-    }
-    setMatchResults(fixtures);
-  };
 
   return (
     <div className="min-h-screen bg-gray-100 relative overflow-hidden">
@@ -127,142 +152,121 @@ export default function AdminDashboard() {
         >
           <option value="">-- Select a Tournament --</option>
           {tournaments.map((t, i) => (
-            <option key={i} value={t.tr_id.toString()}>{t.tr_name}</option>
+            <option key={i} value={t.tr_id}>{t.tr_name}</option>
           ))}
         </select>
 
         {selectedTournament && (
-          <>
-            <p className="mt-4 text-green-600">
+          <div className="mt-4">
+            <p className="text-green-600">
               ✅ Managing: <strong>{tournaments.find(t => t.tr_id.toString() === selectedTournament)?.tr_name}</strong>
             </p>
 
             <h3 className="text-lg font-semibold mt-6 mb-2 text-purple-700">Teams in This Tournament</h3>
-            {teamsInTournament.map((team, index) => (
+            {tournamentTeams.map((team, index) => (
               <div key={index} className="mb-4 p-4 border rounded bg-white shadow-sm">
                 <h4 className="font-bold text-lg text-gray-800">{team.team_name}</h4>
-                <ul className="list-disc list-inside text-gray-600 mt-2">
-                  {team.players && team.players.map((player, idx) => (
-                    <li key={idx}>{player}</li>
-                  ))}
-                </ul>
+                {team.players && team.players.length > 0 && (
+                  <ul className="list-disc list-inside text-gray-600 mt-2">
+                    {team.players.map((player, idx) => (
+                      <li key={idx}>{player}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             ))}
 
-            <button
-              onClick={generateFixtures}
-              className="mt-6 mb-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-              Generate Match Fixtures
-            </button>
+            <h3 className="text-lg font-semibold mt-10 mb-4 text-purple-700">Match Fixtures & Scoring</h3>
+            {fixtures.map((match, idx) => (
+              <div key={idx} className="mb-6 p-4 border rounded bg-white shadow">
+                <h4 className="font-bold text-gray-800 mb-2">
+                  {match.team1.team_name} vs {match.team2.team_name}
+                </h4>
 
-            {matchResults.length > 0 && matchResults.filter(m => m.tr_id === selectedTournament).map((match, i) => {
-              const team1Players = teamsInTournament.find(t => t.team_name === match.team1)?.players || [];
-              const team2Players = teamsInTournament.find(t => t.team_name === match.team2)?.players || [];
-              const score1 = parseInt(match.score1) || 0;
-              const score2 = parseInt(match.score2) || 0;
-
-              return (
-                <div key={i} className="mb-4 p-4 bg-white shadow rounded">
-                  <h4 className="font-bold mb-2">{match.team1} vs {match.team2}</h4>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="number"
-                      placeholder={`${match.team1} Score`}
-                      value={match.score1}
-                      onChange={(e) => handleMatchUpdate(i, 'score1', e.target.value)}
-                      className="border px-4 py-2 rounded"
-                    />
-                    <input
-                      type="number"
-                      placeholder={`${match.team2} Score`}
-                      value={match.score2}
-                      onChange={(e) => handleMatchUpdate(i, 'score2', e.target.value)}
-                      className="border px-4 py-2 rounded"
-                    />
-                  </div>
-
-                  {[...Array(score1)].map((_, idx) => (
-                    <select
-                      key={`s1-${idx}`}
-                      value={match.scorers1?.[idx] || ''}
-                      onChange={(e) => {
-                        const updated = [...(match.scorers1 || [])];
-                        updated[idx] = e.target.value;
-                        handleMatchUpdate(i, 'scorers1', updated);
-                      }}
-                      className="mt-2 w-full border px-4 py-2 rounded"
-                    >
-                      <option value="">Select Scorer for {match.team1}</option>
-                      {team1Players.map((p, j) => (
-                        <option key={j} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  ))}
-
-                  {[...Array(score2)].map((_, idx) => (
-                    <select
-                      key={`s2-${idx}`}
-                      value={match.scorers2?.[idx] || ''}
-                      onChange={(e) => {
-                        const updated = [...(match.scorers2 || [])];
-                        updated[idx] = e.target.value;
-                        handleMatchUpdate(i, 'scorers2', updated);
-                      }}
-                      className="mt-2 w-full border px-4 py-2 rounded"
-                    >
-                      <option value="">Select Scorer for {match.team2}</option>
-                      {team2Players.map((p, j) => (
-                        <option key={j} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  ))}
-
-                  <label className="block mt-4 font-semibold">Carded Players - {match.team1}</label>
-                  <select
-                    multiple
-                    value={match.cards1 || []}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      handleMatchUpdate(i, 'cards1', selected);
-                    }}
-                    className="w-full border px-4 py-2 rounded"
-                  >
-                    {team1Players.map((p, j) => (
-                      <option key={j} value={p}>{p}</option>
-                    ))}
-                  </select>
-
-                  <label className="block mt-4 font-semibold">Carded Players - {match.team2}</label>
-                  <select
-                    multiple
-                    value={match.cards2 || []}
-                    onChange={(e) => {
-                      const selected = Array.from(e.target.selectedOptions, option => option.value);
-                      handleMatchUpdate(i, 'cards2', selected);
-                    }}
-                    className="w-full border px-4 py-2 rounded"
-                  >
-                    {team2Players.map((p, j) => (
-                      <option key={j} value={p}>{p}</option>
-                    ))}
-                  </select>
+                {/* Scores */}
+                <div className="flex gap-4 mb-2">
+                  <input type="number" value={match.score1} onChange={(e) => handleScoreChange(idx, 'score1', e.target.value)} className="w-16 border rounded px-2" placeholder="0" />
+                  <span> - </span>
+                  <input type="number" value={match.score2} onChange={(e) => handleScoreChange(idx, 'score2', e.target.value)} className="w-16 border rounded px-2" placeholder="0" />
                 </div>
-              );
-            })}
 
-            <button
-              onClick={saveMatchResults}
-              className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-            >
-              Save Match Results
-            </button>
-          </>
+                {/* Scorers */}
+                <div>
+                  <p className="font-semibold">Scorers</p>
+
+                  {match.scorers1.map((s, i) => (
+                    <select
+                      key={i}
+                      value={s}
+                      onChange={(e) => handleScorerChange(idx, 'scorers1', i, e.target.value)}
+                      className="mb-1 block w-full border px-2 py-1 rounded"
+                    >
+                      <option value="">-- Select Scorer --</option>
+                      {getPlayerOptions(match.team1)}
+                    </select>
+                  ))}
+                  <button onClick={() => addScorerField(idx, 'scorers1')} className="text-sm text-purple-600 hover:underline">+ Add scorer</button>
+
+                  {match.scorers2.map((s, i) => (
+                    <select
+                      key={i}
+                      value={s}
+                      onChange={(e) => handleScorerChange(idx, 'scorers2', i, e.target.value)}
+                      className="mb-1 block w-full border px-2 py-1 rounded"
+                    >
+                      <option value="">-- Select Scorer --</option>
+                      {getPlayerOptions(match.team2)}
+                    </select>
+                  ))}
+                  <button onClick={() => addScorerField(idx, 'scorers2')} className="text-sm text-purple-600 hover:underline">+ Add scorer</button>
+                </div>
+
+                {/* Red Cards */}
+                <div className="mt-4">
+                  <p className="font-semibold text-red-700">Red Carded Players</p>
+
+                  {match.redCards1.map((r, i) => (
+                    <select
+                      key={i}
+                      value={r}
+                      onChange={(e) => handleRedCardChange(idx, 'redCards1', i, e.target.value)}
+                      className="mb-1 block w-full border px-2 py-1 rounded"
+                    >
+                      <option value="">-- Select Player --</option>
+                      {getPlayerOptions(match.team1)}
+                    </select>
+                  ))}
+                  <button onClick={() => addRedCardField(idx, 'redCards1')} className="text-sm text-red-600 hover:underline">+ Add red card</button>
+
+                  {match.redCards2.map((r, i) => (
+                    <select
+                      key={i}
+                      value={r}
+                      onChange={(e) => handleRedCardChange(idx, 'redCards2', i, e.target.value)}
+                      className="mb-1 block w-full border px-2 py-1 rounded"
+                    >
+                      <option value="">-- Select Player --</option>
+                      {getPlayerOptions(match.team2)}
+                    </select>
+                  ))}
+                  <button onClick={() => addRedCardField(idx, 'redCards2')} className="text-sm text-red-600 hover:underline">+ Add red card</button>
+                </div>
+
+                <button
+                  onClick={() => saveMatch(match)}
+                  className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Save Match
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </main>
 
-      {menuOpen && <div className="fixed inset-0 bg-black opacity-30 z-20" onClick={closeMenu}></div>}
+      {menuOpen && (
+        <div className="fixed inset-0 bg-black opacity-30 z-20" onClick={closeMenu}></div>
+      )}
 
       <aside className={`fixed top-0 right-0 z-30 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ${menuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-4 border-b font-semibold text-gray-700 flex justify-between items-center">
@@ -270,11 +274,11 @@ export default function AdminDashboard() {
           <button onClick={closeMenu} className="text-sm text-purple-600 hover:underline">✕</button>
         </div>
         <ul className="p-4 space-y-4 text-gray-700">
-          <li onClick={() => { closeMenu(); window.location.href = '/admin/add-tournament'; }} className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Add Tournament</li>
-          <li onClick={() => { closeMenu(); navigate('/admin/delete-tournament'); }} className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Delete Tournament</li>
-          <li onClick={() => { closeMenu(); navigate('/admin/add-team'); }} className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Add Team</li>
-          <li onClick={() => { closeMenu(); navigate('/admin/select-captain'); }} className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Select Captain</li>
-          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Approve Player</li>
+          <li onClick={() => { closeMenu(); window.location.href = '/admin/add-tournament'; }} className="cursor-pointer hover:underline">Add Tournament</li>
+          <li onClick={() => { closeMenu(); navigate('/admin/delete-tournament'); }} className="cursor-pointer hover:underline">Delete Tournament</li>
+          <li onClick={() => { closeMenu(); navigate('/admin/add-team'); }} className="cursor-pointer hover:underline">Add Team</li>
+          <li onClick={() => { closeMenu(); navigate('/admin/select-captain'); }} className="cursor-pointer hover:underline">Select Captain</li>
+          <li className="cursor-pointer hover:underline">Approve Player</li>
         </ul>
         <hr className="my-4" />
         <li onClick={handleLogout} className="cursor-pointer text-red-600 hover:underline">Logout</li>

@@ -6,13 +6,22 @@ export default function TeamMembers() {
   const [tournamentTeams, setTournamentTeams] = useState([]);
 
   useEffect(() => {
-    const savedTournaments = JSON.parse(localStorage.getItem('tournaments')) || [];
-    const teams = JSON.parse(localStorage.getItem('tournament_teams')) || [];
-    setTournaments(savedTournaments);
-    setTournamentTeams(teams);
+    // Fetch tournaments from the server
+    fetch('http://localhost:5000/api/tournaments')
+      .then(res => res.json())
+      .then(data => setTournaments(data))
+      .catch(err => console.error('Error loading tournaments:', err));
   }, []);
 
-  const teamsInSelectedTournament = tournamentTeams.filter(t => t.tr_id === selectedTournament);
+  useEffect(() => {
+    if (!selectedTournament) return;
+
+    // Fetch teams and their players for the selected tournament
+    fetch(`http://localhost:5000/api/matches/teams-with-players/${selectedTournament}`)
+      .then(res => res.json())
+      .then(data => setTournamentTeams(data))
+      .catch(err => console.error('Error loading teams:', err));
+  }, [selectedTournament]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -29,15 +38,19 @@ export default function TeamMembers() {
         ))}
       </select>
 
-      {teamsInSelectedTournament.length > 0 ? (
-        teamsInSelectedTournament.map((team, idx) => (
+      {tournamentTeams.length > 0 ? (
+        tournamentTeams.map((team, idx) => (
           <div key={idx} className="mb-4 bg-white shadow p-4 rounded">
             <h3 className="font-bold text-blue-600 mb-2">{team.team_name}</h3>
-            <ul className="list-disc list-inside text-sm text-gray-700">
-              {team.players.map((player, i) => (
-                <li key={i}>{player}</li>
-              ))}
-            </ul>
+            {team.players.length > 0 ? (
+              <ul className="list-disc list-inside text-sm text-gray-700">
+                {team.players.map((player, i) => (
+                  <li key={i}>{player}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-500">No players listed</p>
+            )}
           </div>
         ))
       ) : (

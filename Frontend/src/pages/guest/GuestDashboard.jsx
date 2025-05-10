@@ -7,29 +7,42 @@ export default function GuestDashboard() {
   const [guestName, setGuestName] = useState('');
   const [tournaments, setTournaments] = useState([]);
   const [matchResults, setMatchResults] = useState([]);
+  const [teams, setTeams] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const kfupmID = localStorage.getItem('kfupmID');
     const storedUser = localStorage.getItem(kfupmID);
-
     if (storedUser) {
       const user = JSON.parse(storedUser);
       setGuestName(user.name);
     }
 
-    const savedTournaments = JSON.parse(localStorage.getItem('tournaments')) || [];
-    const matches = JSON.parse(localStorage.getItem('match_results')) || [];
-
-    setTournaments(savedTournaments);
-    setMatchResults(matches);
+    fetch('http://localhost:5000/api/tournaments')
+      .then(res => res.json())
+      .then(data => setTournaments(data))
+      .catch(err => console.error('Error loading tournaments:', err));
   }, []);
+
+  useEffect(() => {
+    if (!selectedTournament) return;
+
+    fetch(`http://localhost:5000/api/matches/results/${selectedTournament}`)
+      .then(res => res.json())
+      .then(data => Array.isArray(data) && setMatchResults(data))
+      .catch(err => console.error('Error loading match results:', err));
+
+    fetch(`http://localhost:5000/api/teams/${selectedTournament}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setTeams(data);
+      })
+      .catch(err => console.error('Error loading teams:', err));
+  }, [selectedTournament]);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
   const closeMenu = () => setMenuOpen(false);
-  const handleLogout = () => {
-    navigate('/');
-  };
+  const handleLogout = () => navigate('/');
 
   return (
     <div className="min-h-screen bg-gray-100 relative overflow-hidden">
@@ -59,13 +72,13 @@ export default function GuestDashboard() {
         </select>
 
         {selectedTournament && (
-          <div className="mt-6 space-y-4">
-            {matchResults
-              .filter(m => m.tr_id === selectedTournament)
-              .map((match, idx) => (
+          <>
+            {/* Match Results */}
+            <div className="mt-6 space-y-4">
+              {matchResults.map((match, idx) => (
                 <div key={idx} className="bg-white p-4 rounded shadow">
                   <h3 className="font-bold mb-2">{match.team1} vs {match.team2}</h3>
-                  <p>Score: {match.score1} - {match.score2}</p>
+                  <p>Score: {match.score1 ?? match.goal_score?.split('-')[0]} - {match.score2 ?? match.goal_score?.split('-')[1]}</p>
 
                   <div className="mt-2">
                     <p className="font-semibold">Scorers</p>
@@ -76,23 +89,38 @@ export default function GuestDashboard() {
                   </div>
 
                   <div className="mt-2">
-                    <p className="font-semibold">Carded Players</p>
-                    <ul className="list-disc list-inside text-sm text-gray-700">
+                    <p className="font-semibold">Red Carded Players</p>
+                    <ul className="list-disc list-inside text-sm text-red-700">
                       {match.cards1?.map((p, i) => <li key={i}>{match.team1}: {p}</li>)}
                       {match.cards2?.map((p, i) => <li key={i}>{match.team2}: {p}</li>)}
                     </ul>
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
+
+            {/* Team List */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-2 text-blue-700">Teams in This Tournament</h3>
+              {teams.map((team, idx) => (
+                <div key={idx} className="bg-white p-4 rounded shadow mb-4">
+                  <h4 className="text-md font-bold mb-2">{team.team_name}</h4>
+                  {team.players?.length > 0 ? (
+                    <ul className="list-disc list-inside text-sm text-gray-600">
+                      {team.players.map((p, i) => <li key={i}>{p}</li>)}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">No players listed</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </main>
 
       {menuOpen && (
-        <div
-          className="fixed inset-0 bg-black opacity-30 z-20"
-          onClick={closeMenu}
-        ></div>
+        <div className="fixed inset-0 bg-black opacity-30 z-20" onClick={closeMenu}></div>
       )}
 
       <aside className={`fixed top-0 right-0 z-30 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 ${menuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -101,35 +129,12 @@ export default function GuestDashboard() {
           <button onClick={closeMenu} className="text-sm text-blue-600 hover:underline">✕</button>
         </div>
         <ul className="p-4 space-y-4 text-gray-700">
-          <li
-            className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}
-            onClick={() => navigate('/guest/top-scorer')}
-          >
-            Top Scorer
-          </li>
-
+          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`} onClick={() => navigate('/guest/top-scorer')}>Top Scorer</li>
           <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}>Browse Match Results</li>
-          <li
-            className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline text-gray-400'}`}
-            onClick={() => navigate('/guest/red-cards')}
-          >
-            Red Carded Players
-          </li>
-
-          <li
-            className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`}
-            onClick={() => navigate('/guest/team-members')}
-          >
-            Team Members
-          </li>
-
+          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`} onClick={() => navigate('/guest/red-cards')}>Red Carded Players</li>
+          <li className={`cursor-pointer ${!selectedTournament ? 'text-gray-400' : 'hover:underline'}`} onClick={() => navigate('/guest/team-members')}>Team Members</li>
           <hr className="my-4" />
-          <li
-            onClick={handleLogout}
-            className="cursor-pointer text-red-600 hover:underline"
-          >
-            Logout
-          </li>
+          <li onClick={handleLogout} className="cursor-pointer text-red-600 hover:underline">Logout</li>
         </ul>
       </aside>
     </div>

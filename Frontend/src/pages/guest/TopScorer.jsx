@@ -1,22 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
 export default function TopScorer() {
-  const [goalCount, setGoalCount] = useState({});
+  const [scorers, setScorers] = useState([]);
 
   useEffect(() => {
-    const savedGoals = JSON.parse(localStorage.getItem('goal_count')) || {};
-    setGoalCount(savedGoals);
+    fetch('http://localhost:5000/api/players/top-scorers')
+      .then(res => res.json())
+      .then(data => setScorers(data))
+      .catch(err => console.error('Failed to load scorers:', err));
   }, []);
-
-  const sortedScorers = Object.entries(goalCount)
-    .filter(([_, goals]) => goals > 0)
-    .sort((a, b) => b[1] - a[1]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <h2 className="text-2xl font-bold mb-4 text-blue-700">Top Scorers</h2>
 
-      {sortedScorers.length === 0 ? (
+      {scorers.length === 0 ? (
         <p className="text-gray-600">No goals have been recorded yet.</p>
       ) : (
         <table className="w-full table-auto bg-white shadow-md rounded overflow-hidden">
@@ -27,10 +25,10 @@ export default function TopScorer() {
             </tr>
           </thead>
           <tbody>
-            {sortedScorers.map(([player, goals], idx) => (
+            {scorers.map((s, idx) => (
               <tr key={idx} className="border-t">
-                <td className="px-4 py-2">{player}</td>
-                <td className="px-4 py-2">{goals}</td>
+                <td className="px-4 py-2">{s.name}</td>
+                <td className="px-4 py-2">{s.goals}</td>
               </tr>
             ))}
           </tbody>
