@@ -240,5 +240,30 @@ router.get('/teams-with-players/:tr_id', async (req, res) => {
   }
 });
 
+// ✅ Add this route to matches.js
+router.get('/redcards/:tr_id', async (req, res) => {
+  const { tr_id } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         t.team_name,
+         p.name AS player_name
+       FROM PLAYER_BOOKED pb
+       JOIN PLAYER pl ON pb.player_id = pl.player_id
+       JOIN PERSON p ON pl.player_id = p.kfupm_id
+       JOIN TEAM t ON pb.team_id = t.team_id
+       JOIN TOURNAMENT_TEAM tt ON t.team_id = tt.team_id
+       WHERE pb.sent_off = 'Y' AND tt.tr_id = $1
+       ORDER BY t.team_name, p.name`,
+      [tr_id]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('❌ Error fetching red carded players:', err);
+    res.status(500).json({ error: 'Failed to fetch red carded players.' });
+  }
+});
 
 module.exports = router;
