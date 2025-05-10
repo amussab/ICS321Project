@@ -266,4 +266,33 @@ router.get('/redcards/:tr_id', async (req, res) => {
   }
 });
 
+const { sendMatchReminderEmail } = require('../utils/email');
+
+// ... inside your try block, after saving match and before res.json()
+
+// Fetch emails for both teams
+const playerEmailsQuery = `
+  SELECT DISTINCT p.email
+  FROM TEAM_PLAYER tp
+  JOIN PERSON p ON tp.player_id = p.kfupm_id
+  WHERE tp.team_id = $1 OR tp.team_id = $2
+`;
+const emailsResult = await pool.query(playerEmailsQuery, [team1_id, team2_id]);
+const emails = emailsResult.rows.map(row => row.email).filter(Boolean);
+
+const subject = `📢 Match Reminder: ${team1_id} vs ${team2_id}`;
+const htmlContent = `
+  <h2>Upcoming Match Notification</h2>
+  <p>Your match has been scheduled between <b>Team ${team1_id}</b> and <b>Team ${team2_id}</b>.</p>
+  <p>Date: <b>${new Date().toLocaleDateString()}</b></p>
+  <p>Score: <b>${safeScore1} - ${safeScore2}</b></p>
+  <p>Please be ready on time!</p>
+`;
+
+// Send email to all players
+for (const email of emails) {
+  await sendMatchReminderEmail(email, subject, htmlContent);
+}
+
+
 module.exports = router;
