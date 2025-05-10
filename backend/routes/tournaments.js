@@ -71,18 +71,23 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE a tournament
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+// DELETE endpoint in tournaments.js
+router.delete('/:tr_id', async (req, res) => {
+  const { tr_id } = req.params;
+
   try {
-    const result = await pool.query('DELETE FROM TOURNAMENT WHERE tr_id = $1', [id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Tournament not found' });
-    }
-    res.json({ message: 'Tournament deleted successfully' });
+    // Step 1: Remove teams from the tournament
+    await pool.query('DELETE FROM TOURNAMENT_TEAM WHERE tr_id = $1', [tr_id]);
+
+    // Step 2: Now you can safely delete the tournament
+    await pool.query('DELETE FROM TOURNAMENT WHERE tr_id = $1', [tr_id]);
+
+    res.json({ message: '✅ Tournament deleted successfully.' });
   } catch (err) {
-    console.error('Error deleting tournament:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Error deleting tournament:', err);
+    res.status(500).json({ error: 'Failed to delete tournament.' });
   }
 });
+
 
 module.exports = router;
