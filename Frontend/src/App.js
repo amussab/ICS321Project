@@ -14,6 +14,7 @@ import SelectCaptain from './pages/admin/SelectCaptain';
 import TopScorer from './pages/guest/TopScorer';
 import RedCardedPlayers from './pages/guest/RedCardedPlayers';
 import TeamMembers from './pages/guest/TeamMembers';
+import ApprovePlayer from './pages/admin/ApprovePlayer';
 
 
 
@@ -35,6 +36,7 @@ function App() {
         <Route path="/guest/top-scorer" element={<TopScorer />} />
         <Route path="/guest/red-cards" element={<RedCardedPlayers />} />
         <Route path="/guest/team-members" element={<TeamMembers />} />
+        <Route path="/admin/approve-player" element={<ApprovePlayer />} />
       </Routes>
     </Router>
   );

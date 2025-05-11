@@ -278,7 +278,10 @@ export default function AdminDashboard() {
           <li onClick={() => { closeMenu(); navigate('/admin/delete-tournament'); }} className="cursor-pointer hover:underline">Delete Tournament</li>
           <li onClick={() => { closeMenu(); navigate('/admin/add-team'); }} className="cursor-pointer hover:underline">Add Team</li>
           <li onClick={() => { closeMenu(); navigate('/admin/select-captain'); }} className="cursor-pointer hover:underline">Select Captain</li>
-          <li className="cursor-pointer hover:underline">Approve Player</li>
+          <li onClick={() => { closeMenu(); navigate('/admin/approve-player'); }} className="cursor-pointer hover:underline">
+            Approve Player
+          </li>
+
         </ul>
         <hr className="my-4" />
         <li onClick={handleLogout} className="cursor-pointer text-red-600 hover:underline">Logout</li>
