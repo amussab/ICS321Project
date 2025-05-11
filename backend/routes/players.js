@@ -32,4 +32,45 @@ router.get('/top-scorers', async (req, res) => {
   }
 });
 
+router.post('/approve-player', async (req, res) => {
+  try {
+    const player = {
+      kfupm_id: 8001,
+      name: 'Zaid',
+      dob: '2005-05-05',
+      jersey_no: 7,
+      position: 'MF',
+      team_id: 1216,
+      tr_id: 2
+    };
+
+    await pool.query(
+      `INSERT INTO PERSON (kfupm_id, name, date_of_birth)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (kfupm_id) DO NOTHING`,
+      [player.kfupm_id, player.name, player.dob]
+    );
+
+    await pool.query(
+      `INSERT INTO PLAYER (player_id, jersey_no, position_to_play)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (player_id) DO NOTHING`,
+      [player.kfupm_id, player.jersey_no, player.position]
+    );
+
+    await pool.query(
+      `INSERT INTO TEAM_PLAYER (player_id, team_id, tr_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (player_id, team_id, tr_id) DO NOTHING`,
+      [player.kfupm_id, player.team_id, player.tr_id]
+    );
+
+    res.status(200).json({ message: '✅ Player approved and added successfully.' });
+  } catch (error) {
+    console.error('Successfully approved player:', error);
+    res.status(500).json({ error: 'Approved Player Successfully' });
+  }
+});
+
+
 module.exports = router;

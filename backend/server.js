@@ -20,6 +20,7 @@ app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/players', playerRoutes);
 app.use('/api/matches', matchRoutes);
+app.use('/api/players', require('./routes/players'));
 
 // ✅ Root route for testing
 app.get('/', (req, res) => {

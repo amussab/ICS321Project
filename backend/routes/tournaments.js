@@ -76,13 +76,16 @@ router.delete('/:tr_id', async (req, res) => {
   const { tr_id } = req.params;
 
   try {
-    // Step 1: Remove teams from the tournament
+
+    await pool.query('DELETE FROM TEAM_PLAYER WHERE tr_id = $1', [tr_id]);
+
+
     await pool.query('DELETE FROM TOURNAMENT_TEAM WHERE tr_id = $1', [tr_id]);
 
-    // Step 2: Now you can safely delete the tournament
+
     await pool.query('DELETE FROM TOURNAMENT WHERE tr_id = $1', [tr_id]);
 
-    res.json({ message: '✅ Tournament deleted successfully.' });
+    res.json({ message: '✅ Tournament and related data deleted successfully.' });
   } catch (err) {
     console.error('❌ Error deleting tournament:', err);
     res.status(500).json({ error: 'Failed to delete tournament.' });
