@@ -25,14 +25,13 @@ export default function ApprovePlayer() {
       <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
         <h2 className="text-lg font-semibold mb-2">Pending Applications</h2>
         <div className="p-4 border rounded bg-gray-50 mb-4">
-          <p><strong>Name:</strong> Badr</p>
+          <p><strong>Name:</strong> Mohammed</p>
           <p><strong>KFUPM ID:</strong> 9999</p>
-          <p><strong>Team:</strong> CCM (1214)</p>
-          <p><strong>Tournament:</strong> Faculty Tournament (1)</p>
+          <p><strong>Team:</strong> CDB (1214)</p>
+          <p><strong>Tournament:</strong> Student Tournament (1)</p>
           <p><strong>Jersey No:</strong> 10</p>
           <p><strong>Position:</strong> MF (Midfielder)</p>
         </div>
-
         <button
           onClick={handleApprove}
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full"
