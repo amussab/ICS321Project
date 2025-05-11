@@ -126,3 +126,109 @@ INSERT INTO MATCH_CAPTAIN VALUES (2, 1215, 1003);
 
 INSERT INTO PENALTY_GK VALUES (1, 1214, 1003);
 INSERT INTO PENALTY_GK VALUES (1, 1215, 1007);
+
+
+CREATE OR REPLACE FUNCTION check_goal_format()
+RETURNS TRIGGER AS $$
+DECLARE
+    g1 INT := split_part(NEW.results, '-', 1)::INT;
+    g2 INT := split_part(NEW.results, '-', 2)::INT;
+BEGIN
+    IF g1 < 0 OR g2 < 0 THEN
+        RAISE EXCEPTION 'Goals cannot be negative';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_goal_format
+BEFORE INSERT ON MATCH_PLAYED
+FOR EACH ROW
+EXECUTE FUNCTION check_goal_format();
+
+
+CREATE OR REPLACE FUNCTION fill_goal_score_field()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.goal_score := NEW.results;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_fill_goal_score
+BEFORE INSERT ON MATCH_PLAYED
+FOR EACH ROW
+EXECUTE FUNCTION fill_goal_score_field();
+
+
+CREATE OR REPLACE FUNCTION update_venue_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE VENUE
+    SET venue_status = 'B'  -- B for Booked
+    WHERE venue_id = NEW.venue_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_venue_status
+AFTER INSERT ON MATCH_PLAYED
+FOR EACH ROW
+EXECUTE FUNCTION update_venue_status();
+
+
+-- Step 1: Create the function
+CREATE OR REPLACE FUNCTION update_team_stats()
+RETURNS TRIGGER AS $$
+DECLARE
+    team1_goals INT;
+    team2_goals INT;
+BEGIN
+    -- Extract goals from results format '2-1'
+    team1_goals := split_part(NEW.results, '-', 1)::INT;
+    team2_goals := split_part(NEW.results, '-', 2)::INT;
+
+    -- Update TEAM1 stats
+    UPDATE TOURNAMENT_TEAM
+    SET match_played = match_played + 1,
+        goal_for = goal_for + team1_goals,
+        goal_against = goal_against + team2_goals,
+        goal_diff = goal_diff + (team1_goals - team2_goals),
+        won = won + CASE WHEN team1_goals > team2_goals THEN 1 ELSE 0 END,
+        draw = draw + CASE WHEN team1_goals = team2_goals THEN 1 ELSE 0 END,
+        lost = lost + CASE WHEN team1_goals < team2_goals THEN 1 ELSE 0 END,
+        points = points + CASE
+                            WHEN team1_goals > team2_goals THEN 3
+                            WHEN team1_goals = team2_goals THEN 1
+                            ELSE 0
+                          END
+    WHERE team_id = NEW.team_id1
+      AND tr_id = (SELECT tr_id
+                   FROM TOURNAMENT_TEAM
+                   WHERE team_id = NEW.team_id1
+                   LIMIT 1);
+
+    -- Update TEAM2 stats
+    UPDATE TOURNAMENT_TEAM
+    SET match_played = match_played + 1,
+        goal_for = goal_for + team2_goals,
+        goal_against = goal_against + team1_goals,
+        goal_diff = goal_diff + (team2_goals - team1_goals),
+        won = won + CASE WHEN team2_goals > team1_goals THEN 1 ELSE 0 END,
+        draw = draw + CASE WHEN team2_goals = team1_goals THEN 1 ELSE 0 END,
+        lost = lost + CASE WHEN team2_goals < team1_goals THEN 1 ELSE 0 END,
+        points = points + CASE
+                            WHEN team2_goals > team1_goals THEN 3
+                            WHEN team2_goals = team1_goals THEN 1
+                            ELSE 0
+                          END
+    WHERE team_id = NEW.team_id2
+      AND tr_id = (SELECT tr_id
+                   FROM TOURNAMENT_TEAM
+                   WHERE team_id = NEW.team_id2
+                   LIMIT 1);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
